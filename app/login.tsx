@@ -34,7 +34,7 @@ export default function LoginScreen() {
 
       alert("Login Successful");
 
-      router.push("/home");
+      router.replace("/(tabs)/home");
     } catch (error: any) {
       alert(error.message);
     }
