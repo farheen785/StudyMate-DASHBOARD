@@ -1,57 +1,57 @@
-StudyMateX
+# 📚 StudyMate App
 
-Overview
-StudyMateX is a student productivity application developed using React Native, Expo Router, Firebase Authentication, and MVVM Architecture.
+## 📌 Overview
+StudyMate is a student productivity app that helps manage tasks, view performance, and track progress using API-based data.
 
-Features
-User Registration
-User Login
-Firebase Authentication
-Password Reset
-Home Dashboard
-Study Resources
-Focus Tracking
-User Logout
-Technologies Used
-React Native
-Expo
-Expo Router
-Firebase Authentication
-TypeScript
-MVVM Architecture
-Setup Instructions
-Clone Repository
+---
 
-git clone https://github.com/farheen785/StudyMateX.git
+## 🚀 Features
+- Task management system
+- Dashboard with live API data
+- Performance tracking (completed, pending, total tasks)
+- Pull to refresh data
+- Clean UI with Jetpack Compose / React Native (edit as per your app)
 
-Install Dependencies
+---
 
-npm install
+## 🏗 Architecture
+The app follows Clean Architecture:
 
-Start Project
+- UI Layer → Screens (Home, Performance, Profile)
+- ViewModel Layer → State management
+- Repository Layer → Data handling
+- API Layer → Network requests (Retrofit / Axios)
 
-npx expo start
+---
 
-Firebase Configuration
-Create Firebase Project
-Enable Email/Password Authentication
-Copy Firebase Configuration
-Paste configuration into:
+## 🌐 API Used
+- Base URL: YOUR_API_URL_HERE
+- Methods:
+  - GET tasks
+  - GET performance data
 
-src/services/firebase.ts
+---
 
-Project Structure
+## 📸 Screenshots
+See `/screenshots` folder.
 
-src/
-├── services/
-├── viewmodel/
-├── view/
-├── model/
+---
 
-Authentication Flow
+## 🎥 Demo
+Screen recording included showing:
+- Data loading
+- Data display
+- Refresh action
 
-Signup → Firebase Authentication → Login → Home Dashboard → Logout
+---
 
-Author
+## ⚙️ How to Run
+1. Clone repository
+2. Open in Android Studio / VS Code
+3. Sync dependencies
+4. Run project
 
+---
+
+## 👩‍💻 Developer
 Farheen Shah
