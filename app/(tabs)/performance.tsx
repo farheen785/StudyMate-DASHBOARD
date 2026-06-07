@@ -1,14 +1,12 @@
-
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
-
-import { auth, db } from "../../src/services/firebase";
 
 import {
   collection,
@@ -17,13 +15,16 @@ import {
   where,
 } from "firebase/firestore";
 
+import { auth, db } from "../../src/services/firebase";
+
 export default function PerformanceScreen() {
   const [loading, setLoading] = useState(true);
 
   const [totalTasks, setTotalTasks] = useState(0);
   const [completedTasks, setCompletedTasks] = useState(0);
   const [pendingTasks, setPendingTasks] = useState(0);
-  const [completionRate, setCompletionRate] = useState(0);
+
+  const [studySeconds, setStudySeconds] = useState(0);
 
   useEffect(() => {
     loadPerformance();
@@ -31,46 +32,73 @@ export default function PerformanceScreen() {
 
   const loadPerformance = async () => {
     try {
+      setLoading(true);
+
       const uid = auth.currentUser?.uid;
 
       if (!uid) return;
 
-      const q = query(
+      // TASKS
+      const taskQuery = query(
         collection(db, "tasks"),
         where("userId", "==", uid)
       );
 
-      const snapshot = await getDocs(q);
+      const taskSnapshot = await getDocs(taskQuery);
 
-      const tasks: any[] = [];
+      let total = 0;
+      let completed = 0;
+      let pending = 0;
 
-      snapshot.forEach((doc) => {
-        tasks.push(doc.data());
+      taskSnapshot.forEach((document) => {
+        total++;
+
+        const task = document.data();
+
+        if (task.status === "Completed") {
+          completed++;
+        } else {
+          pending++;
+        }
       });
-
-      const total = tasks.length;
-
-      const completed = tasks.filter(
-        (task) => task.status === "Completed"
-      ).length;
-
-      const pending = total - completed;
-
-      const rate =
-        total > 0
-          ? Math.round((completed / total) * 100)
-          : 0;
 
       setTotalTasks(total);
       setCompletedTasks(completed);
       setPendingTasks(pending);
-      setCompletionRate(rate);
+
+      // STUDY SESSIONS
+      const sessionQuery = query(
+        collection(db, "study_sessions"),
+        where("userId", "==", uid)
+      );
+
+      const sessionSnapshot = await getDocs(
+        sessionQuery
+      );
+
+      let totalStudySeconds = 0;
+
+      sessionSnapshot.forEach((document) => {
+        const session = document.data();
+
+        totalStudySeconds +=
+          session.duration || 0;
+      });
+
+      setStudySeconds(totalStudySeconds);
     } catch (error) {
       console.log(error);
     } finally {
       setLoading(false);
     }
   };
+
+  const completionRate =
+    totalTasks > 0
+      ? Math.round(
+          (completedTasks / totalTasks) * 100
+        )
+      : 0;
 
   if (loading) {
     return (
@@ -84,59 +112,85 @@ export default function PerformanceScreen() {
   }
 
   return (
-    <ScrollView style={styles.container}>
+    <ScrollView
+      style={styles.container}
+      refreshControl={
+        <RefreshControl
+          refreshing={loading}
+          onRefresh={loadPerformance}
+        />
+      }
+    >
       <Text style={styles.header}>
-        📊 Performance Dashboard
+        📊 Performance
       </Text>
 
       <View style={styles.card}>
-        <Text style={styles.label}>
+        <Text style={styles.title}>
           📋 Total Tasks
         </Text>
-        <Text style={styles.value}>
+
+        <Text style={styles.number}>
           {totalTasks}
         </Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>
+        <Text style={styles.title}>
           ✅ Completed Tasks
         </Text>
-        <Text style={styles.value}>
+
+        <Text style={styles.number}>
           {completedTasks}
         </Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>
-          ⌛ Pending Tasks
+        <Text style={styles.title}>
+          ⏳ Pending Tasks
         </Text>
-        <Text style={styles.value}>
+
+        <Text style={styles.number}>
           {pendingTasks}
         </Text>
       </View>
 
       <View style={styles.card}>
-        <Text style={styles.label}>
-          📈 Completion Rate
+        <Text style={styles.title}>
+          📚 Total Study Time
         </Text>
-        <Text style={styles.value}>
+
+        <Text style={styles.number}>
+          {Math.floor(
+            studySeconds / 3600
+          )}h{" "}
+          {Math.floor(
+            (studySeconds % 3600) / 60
+          )}m
+        </Text>
+      </View>
+
+      <View style={styles.card}>
+        <Text style={styles.title}>
+          🎯 Completion Rate
+        </Text>
+
+        <Text style={styles.number}>
           {completionRate}%
         </Text>
       </View>
 
-      <View style={styles.bigCard}>
-        <Text style={styles.bigTitle}>
-          🎯 Study Progress
+      <View style={styles.card}>
+        <Text style={styles.title}>
+          🔥 Study Status
         </Text>
 
-        <Text style={styles.bigPercent}>
-          {completionRate}%
-        </Text>
-
-        <Text style={styles.progressText}>
-          Keep completing tasks to improve
-          your performance!
+        <Text style={styles.status}>
+          {studySeconds >= 3600
+            ? "Excellent"
+            : studySeconds >= 1800
+            ? "Good"
+            : "Needs Improvement"}
         </Text>
       </View>
     </ScrollView>
@@ -147,7 +201,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F5F7FB",
-    padding: 15,
+    padding: 20,
   },
 
   loader: {
@@ -157,54 +211,34 @@ const styles = StyleSheet.create({
   },
 
   header: {
-    fontSize: 28,
+    fontSize: 30,
     fontWeight: "bold",
     marginBottom: 20,
   },
 
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     padding: 20,
     borderRadius: 15,
     marginBottom: 15,
-    elevation: 3,
+    elevation: 2,
   },
 
-  label: {
+  title: {
     fontSize: 16,
-    color: "#666",
+    color: "#4F46E5",
+    fontWeight: "bold",
+    marginBottom: 10,
   },
 
-  value: {
+  number: {
     fontSize: 30,
     fontWeight: "bold",
-    marginTop: 5,
-    color: "#4F46E5",
   },
 
-  bigCard: {
-    backgroundColor: "#4F46E5",
-    borderRadius: 20,
-    padding: 25,
-    marginTop: 10,
-    marginBottom: 30,
-  },
-
-  bigTitle: {
-    color: "#fff",
+  status: {
     fontSize: 22,
     fontWeight: "bold",
-  },
-
-  bigPercent: {
-    color: "#fff",
-    fontSize: 50,
-    fontWeight: "bold",
-    marginVertical: 15,
-  },
-
-  progressText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#22C55E",
   },
 });

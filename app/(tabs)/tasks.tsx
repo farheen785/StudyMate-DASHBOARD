@@ -22,6 +22,7 @@ import {
   updateDoc,
   where,
 } from "firebase/firestore";
+
 import { auth, db } from "../../src/services/firebase";
 
 export default function TasksScreen() {
@@ -29,7 +30,9 @@ export default function TasksScreen() {
   const [loading, setLoading] = useState(true);
 
   const [modalVisible, setModalVisible] = useState(false);
+
   const [title, setTitle] = useState("");
+  const [dueDate, setDueDate] = useState("");
 
   useEffect(() => {
     loadTasks();
@@ -76,17 +79,27 @@ export default function TasksScreen() {
 
       const uid = auth.currentUser?.uid;
 
+      if (!uid) return;
+
       await addDoc(collection(db, "tasks"), {
         userId: uid,
         title,
+        dueDate,
         status: "Pending",
         createdAt: new Date(),
       });
 
-      setTitle("");
-      setModalVisible(false);
+      await addDoc(collection(db, "activities"), {
+        userId: uid,
+        title: `Added Task: ${title}`,
+        createdAt: new Date(),
+      });
 
       Alert.alert("Success", "Task Added");
+
+      setTitle("");
+      setDueDate("");
+      setModalVisible(false);
 
       loadTasks();
     } catch (error: any) {
@@ -94,14 +107,22 @@ export default function TasksScreen() {
     }
   };
 
-  const markAsDone = async (taskId: string) => {
+  const markAsDone = async (
+    taskId: string,
+    taskTitle: string
+  ) => {
     try {
-      await updateDoc(
-        doc(db, "tasks", taskId),
-        {
-          status: "Completed",
-        }
-      );
+      await updateDoc(doc(db, "tasks", taskId), {
+        status: "Completed",
+      });
+
+      const uid = auth.currentUser?.uid;
+
+      await addDoc(collection(db, "activities"), {
+        userId: uid,
+        title: `Completed Task: ${taskTitle}`,
+        createdAt: new Date(),
+      });
 
       loadTasks();
     } catch (error) {
@@ -111,9 +132,7 @@ export default function TasksScreen() {
 
   const deleteTask = async (taskId: string) => {
     try {
-      await deleteDoc(
-        doc(db, "tasks", taskId)
-      );
+      await deleteDoc(doc(db, "tasks", taskId));
 
       loadTasks();
     } catch (error) {
@@ -134,7 +153,6 @@ export default function TasksScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-
       <FlatList
         data={tasks}
         keyExtractor={(item) => item.id}
@@ -151,9 +169,12 @@ export default function TasksScreen() {
         }
         renderItem={({ item }) => (
           <View style={styles.card}>
-
             <Text style={styles.taskTitle}>
               {item.title}
+            </Text>
+
+            <Text style={styles.dueDate}>
+              📅 Due: {item.dueDate || "Not Set"}
             </Text>
 
             <Text
@@ -171,13 +192,14 @@ export default function TasksScreen() {
             </Text>
 
             <View style={styles.buttonRow}>
-
-              {item.status !==
-                "Completed" && (
+              {item.status !== "Completed" && (
                 <TouchableOpacity
                   style={styles.doneButton}
                   onPress={() =>
-                    markAsDone(item.id)
+                    markAsDone(
+                      item.id,
+                      item.title
+                    )
                   }
                 >
                   <Text style={styles.actionText}>
@@ -196,14 +218,10 @@ export default function TasksScreen() {
                   🗑 Delete
                 </Text>
               </TouchableOpacity>
-
             </View>
-
           </View>
         )}
       />
-
-      {/* Floating Add Button */}
 
       <TouchableOpacity
         style={styles.fab}
@@ -211,12 +229,8 @@ export default function TasksScreen() {
           setModalVisible(true)
         }
       >
-        <Text style={styles.plus}>
-          +
-        </Text>
+        <Text style={styles.plus}>+</Text>
       </TouchableOpacity>
-
-      {/* Add Task Modal */}
 
       <Modal
         visible={modalVisible}
@@ -225,7 +239,6 @@ export default function TasksScreen() {
       >
         <View style={styles.modalContainer}>
           <View style={styles.modalBox}>
-
             <Text style={styles.modalTitle}>
               Add New Task
             </Text>
@@ -235,6 +248,13 @@ export default function TasksScreen() {
               style={styles.input}
               value={title}
               onChangeText={setTitle}
+            />
+
+            <TextInput
+              placeholder="Due Date (YYYY-MM-DD)"
+              style={styles.input}
+              value={dueDate}
+              onChangeText={setDueDate}
             />
 
             <TouchableOpacity
@@ -255,11 +275,9 @@ export default function TasksScreen() {
                 Cancel
               </Text>
             </TouchableOpacity>
-
           </View>
         </View>
       </Modal>
-
     </View>
   );
 }
@@ -289,6 +307,11 @@ const styles = StyleSheet.create({
   taskTitle: {
     fontSize: 18,
     fontWeight: "bold",
+  },
+
+  dueDate: {
+    marginTop: 5,
+    color: "#666",
   },
 
   status: {

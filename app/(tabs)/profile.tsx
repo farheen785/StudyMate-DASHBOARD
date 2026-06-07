@@ -12,11 +12,7 @@ import { router } from "expo-router";
 
 import { auth, db } from "../../src/services/firebase";
 
-import {
-  doc,
-  getDoc,
-  setDoc,
-} from "firebase/firestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
 
 import {
   sendPasswordResetEmail,
@@ -26,6 +22,7 @@ import {
 export default function ProfileScreen() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [goal, setGoal] = useState("");
 
   useEffect(() => {
     loadUser();
@@ -46,6 +43,7 @@ export default function ProfileScreen() {
 
         setName(data.name || "");
         setEmail(data.email || "");
+        setGoal(data.goal || "");
       }
     } catch (error) {
       console.log(error);
@@ -63,6 +61,7 @@ export default function ProfileScreen() {
         {
           name,
           email,
+          goal,
           updatedAt: new Date(),
         },
         { merge: true }
@@ -97,7 +96,7 @@ export default function ProfileScreen() {
 
       Alert.alert(
         "Success",
-        "Password reset email sent."
+        "Password reset email sent"
       );
     } catch (error: any) {
       Alert.alert(
@@ -110,7 +109,6 @@ export default function ProfileScreen() {
   const logout = async () => {
     try {
       await signOut(auth);
-
       router.replace("/login");
     } catch (error: any) {
       Alert.alert(
@@ -139,6 +137,13 @@ export default function ProfileScreen() {
         value={email}
         onChangeText={setEmail}
         autoCapitalize="none"
+      />
+
+      <TextInput
+        style={styles.input}
+        placeholder="Study Goal"
+        value={goal}
+        onChangeText={setGoal}
       />
 
       <TouchableOpacity
